@@ -6,8 +6,11 @@
 <style type="text/css">
 html, input {font-size: 40px;}
 h1 { font-size: 150%; text-align: center; }
+h2{font-size:75%;text-align:center;}
 body .container {width: 15em; margin: 0 auto; padding: 1em;}
 label {display: block;}
+select{border:1px solid black;font-size:70%;text-decoration:none;padding:0.25em 0.25em;color:white;margin:0;background-color:#ac0000;cursor:pointer;-webkit-appearance:none;-webkit-border-radius:0;}
+
 input[type=text], input[type=password] {width: 100%; box-sizing: border-box;}
 input[type=submit] {
     width: 100%;
@@ -26,7 +29,8 @@ input[type=submit][disabled] {
     color: #aaaaaa;
     background-color: #eeeeee !important;
 }
-.networks {list-style: none; margin: 1em 0; padding: 0;}
+.networkheader{font-size:75%;font-weight:bold;margin:0.25em 0 0 0;padding:0;border-bottom:2px solid #aaa;text-align:center;}
+.networks{font-size:75%;list-style:none;margin:0.4em 0.4em;padding:0;}
 .networks li {
     cursor: pointer;
     padding: 0.25em;
@@ -47,28 +51,39 @@ input[type=submit][disabled] {
 </style>
 </head>
 <body>
+
     <div class="container">
         <!-- part HTML_SETTINGS_CUSTOM_HTML -->
         {{ custom_html|safe }}
+        
+
         <!-- part HTML_SETTINGS_BODY -->
         <h1>Join WiFi network</h1>
         <form action="/settings" method="get">
             <input type="submit" id="refresh" value="⟲ Refresh" />
         </form>
         <form action="/settings" method="post">
+            <div class="field required conf">
+                <label for="wifimode"> WiFi connection mode <select name="wifimode">
+                    <option value="0" <!-- part HTML_WIFI_MODE_0 -->>Normal</option>
+                    <option value="1" <!-- part HTML_WIFI_MODE_1 -->>Force BSSID</option>
+                    </select></label></div>
             <div class="nonetworks" style="display: none;">
                 No networks found
             </div>
 
-            <ul id="networks" class="networks">
+            <label class="networkheader">WiFi SSID (RSSI Channel) BSSID</label><ul id="networks" class="networks">
                 <!-- part HTML_NETWORK_ITEM -->
                 {% for network in networks %}
-                <li class="{{ network.secure | ternary('secure', 'unsecure') }}">{{ network.ssid }}</li>
+                <li class="{{ network.secure | ternary('secure', 'unsecure') }}" id="{{ network.bssid }}" title="{{ network.ssid }}">{{ network.ssid }} ({{ network.rssi }} Ch{{ network.channel }}) {{ network.bssid }}</li>
                 {% endfor %}
                 <!-- part HTML_SETTINGS_FOOTER -->
                 <li class="other">Other</li>
             </ul>
-
+            <div class="field bssid" style="display:none;">
+                <label for="bssid">BSSID:</label>
+                <input type="text" id="bssid" name="bssid" />
+                </div>
             <div class="field required ssid" style="display: none;">
                 <label for="ssid">SSID:</label>
                 <input type="text" id="ssid" name="ssid" />
@@ -83,11 +98,13 @@ input[type=submit][disabled] {
         </form>
     </div>
     <script>
-var ssid_field, password_block, password_field, join_button;
+var ssid_field, bssid_field, password_block, password_field, join_button;
 
 networks_block = document.getElementById('networks');
 ssid_block = document.querySelector('.field.ssid');
 ssid_field = document.getElementById('ssid');
+bssid_block=document.querySelector('.field.bssid');
+bssid_field=document.getElementById('bssid');
 password_block = document.querySelector('.field.password');
 password_field = document.getElementById('password');
 join_button = document.getElementById('join');
@@ -111,11 +128,14 @@ for (i=0; i<nets.length; i++) {
     nets[i].onclick = function(event) {
         event.preventDefault();
         selectNetwork(this);
-        ssid_field.value = this.innerText;
+        ssid_field.value=this.title;
+        bssid_field.value=this.id;
         hide(ssid_block);
+        hide(bssid_block);
         hide(password_block);
         disable(password_field);
-        password_field.value = '';
+        password_field.value = "";
+        show(bssid_block);
         enable(join_button);
     }
 }
@@ -125,8 +145,10 @@ for (i=0; i<nets.length; i++) {
     nets[i].onclick = function(event) {
         event.preventDefault();
         selectNetwork(this);
-        ssid_field.value = this.innerText;
+        ssid_field.value=this.title;
+        bssid_field.value=this.id;
         hide(ssid_block);
+        hide(bssid_block);
         enable(password_field);
         show(password_block);
         disable(join_button);
@@ -143,9 +165,12 @@ for (i=0; i<nets.length; i++) {
 
         selectNetwork(this);
         ssid_field.value = "";
+        bssid_field.value="";
         show(ssid_block);
+        show(bssid_block);
         show(password_block);
         enable(ssid_field);
+        enable(bssid_field);
         enable(password_field);
         disable(join_button);
         password_block.classList.remove('required');
